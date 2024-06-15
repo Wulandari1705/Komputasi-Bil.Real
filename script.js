@@ -69,12 +69,13 @@ function gaussElimination(matrix, results) {
     const order = matrix.length;
     for (let k = 0; k < order; k++) {
         for (let i = k + 1; i < order; i++) {
-            const factor = matrix[i][k] / matrix[k][k];
+            let factor = matrix[i][k] / matrix[k][k];
+            factor = Math.round(factor * 100) / 100; // Membulatkan faktor ke 2 desimal
             for (let j = k; j < order; j++) {
                 matrix[i][j] -= factor * matrix[k][j];
             }
             results[i] -= factor * results[k];
-            displayStep(matrix, results, stepsDiv, `R${i + 1} -> R${i + 1} - (${factor.toFixed(2)})R${k + 1}`, matrix[k][k]);
+            displayStep(matrix, results, stepsDiv, `R${i + 1} -> R${i + 1} - (${factor})R${k + 1}`, Math.round(matrix[k][k]), false);
         }
     }
 
@@ -88,26 +89,28 @@ function gaussJordanElimination(matrix, results) {
 
     const order = matrix.length;
     for (let k = 0; k < order; k++) {
-        const pivot = matrix[k][k];
+        let pivot = matrix[k][k];
         for (let j = k; j < order; j++) {
             matrix[k][j] /= pivot;
         }
         results[k] /= pivot;
-        displayStep(matrix, results, stepsDiv, `R${k + 1} -> R${k + 1} / (${pivot.toFixed(2)})`, pivot);
+        pivot = Math.round(pivot * 100) / 100; // Membulatkan pivot ke 2 desimal
+        displayStep(matrix, results, stepsDiv, `R${k + 1} -> R${k + 1} / (${pivot})`, pivot, true);
 
         for (let i = 0; i < order; i++) {
             if (i !== k) {
-                const factor = matrix[i][k];
+                let factor = matrix[i][k];
+                factor = Math.round(factor * 100) / 100; // Membulatkan faktor ke 2 desimal
                 for (let j = k; j < order; j++) {
                     matrix[i][j] -= factor * matrix[k][j];
                 }
                 results[i] -= factor * results[k];
-                displayStep(matrix, results, stepsDiv, `R${i + 1} -> R${i + 1} - (${factor.toFixed(2)})R${k + 1}`, pivot);
+                displayStep(matrix, results, stepsDiv, `R${i + 1} -> R${i + 1} - (${factor})R${k + 1}`, pivot, true);
             }
         }
     }
 
-    const solution = results;
+    const solution = results.map(x => Math.round(x * 100) / 100); // Membulatkan solusi akhir ke 2 desimal
     displaySolution(solution, 'gauss-jordan');
 }
 
@@ -120,7 +123,7 @@ function backSubstitution(matrix, results) {
         for (let j = i + 1; j < order; j++) {
             sum -= matrix[i][j] * solution[j];
         }
-        solution[i] = Math.round(sum / matrix[i][i]); // Menggunakan Math.round() untuk pembulatan
+        solution[i] = Math.round((sum / matrix[i][i]) * 100) / 100; // Membulatkan ke 2 desimal
     }
 
     return solution;
@@ -132,13 +135,13 @@ function displaySolution(solution, method) {
     }
 }
 
-function displayStep(matrix, results, stepsDiv, operation, pivot) {
+function displayStep(matrix, results, stepsDiv, operation, pivot, isGaussJordan) {
     const stepDiv = document.createElement('div');
     stepDiv.classList.add('step');
 
     const operationP = document.createElement('p');
     operationP.classList.add('operation');
-    operationP.innerText = `${operation}`;
+    operationP.innerText = `${operation} (Pivot: ${pivot})`;
     stepDiv.appendChild(operationP);
 
     const table = document.createElement('table');
@@ -146,15 +149,15 @@ function displayStep(matrix, results, stepsDiv, operation, pivot) {
         const row = document.createElement('tr');
         for (let j = 0; j < matrix[i].length; j++) {
             const cell = document.createElement('td');
-            if (j >= i) {
-                cell.innerText = Math.round(matrix[i][j]);
+            if (isGaussJordan && j < i) {
+                cell.innerText = 0; // Mengatur elemen bawah diagonal utama menjadi 0
             } else {
-                cell.innerText = '0';
+                cell.innerText = Math.round(matrix[i][j] * 100) / 100; // Membulatkan ke 2 desimal
             }
             row.appendChild(cell);
         }
         const resultCell = document.createElement('td');
-        resultCell.innerText = Math.round(results[i]);
+        resultCell.innerText = Math.round(results[i] * 100) / 100; // Membulatkan ke 2 desimal
         row.appendChild(resultCell);
         table.appendChild(row);
     }
