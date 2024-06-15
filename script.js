@@ -1,3 +1,6 @@
+// MyKomputasi-By.Indria Wulandari
+// Solusi untuk Sistem Persamaan Linear menggunakan Metode Gauss & Gauss-Jordan dengan hasil berupa Bilangan Real
+
 document.addEventListener('DOMContentLoaded', () => {
     generateMatrixInput();
 });
