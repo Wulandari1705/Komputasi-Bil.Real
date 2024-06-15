@@ -59,9 +59,12 @@ function compute(method) {
     }
 
     if (method === 'gauss') {
-        gaussElimination(matrix, results);
+        const { matrixAfterGauss, resultsAfterGauss, pivots } = gaussElimination(matrix, results);
+        const solution = backSubstitution(matrixAfterGauss, resultsAfterGauss);
+        displaySolution(solution, 'gauss');
     } else if (method === 'gauss-jordan') {
-        gaussJordanElimination(matrix, results);
+        const { matrixAfterGauss, resultsAfterGauss, pivots } = gaussElimination(matrix, results);
+        gaussJordanElimination(matrixAfterGauss, resultsAfterGauss);
     }
 }
 
@@ -70,20 +73,23 @@ function gaussElimination(matrix, results) {
     stepsDiv.innerHTML = '';
 
     const order = matrix.length;
+    const matrixCopy = matrix.map(row => [...row]); // Salin matriks untuk diproses
+    const resultsCopy = [...results]; // Salin hasil untuk diproses
+    const pivots = []; // Untuk menyimpan nilai pivot
+
     for (let k = 0; k < order; k++) {
         for (let i = k + 1; i < order; i++) {
-            let factor = matrix[i][k] / matrix[k][k];
-            factor = Math.round(factor * 100) / 100; // Membulatkan faktor ke 2 desimal
+            const factor = Math.round(matrixCopy[i][k] / matrixCopy[k][k]);
             for (let j = k; j < order; j++) {
-                matrix[i][j] -= factor * matrix[k][j];
+                matrixCopy[i][j] = Math.round(matrixCopy[i][j] - factor * matrixCopy[k][j]);
             }
-            results[i] -= factor * results[k];
-            displayStep(matrix, results, stepsDiv, `R${i + 1} -> R${i + 1} - (${factor})R${k + 1}`, Math.round(matrix[k][k]), false);
+            resultsCopy[i] = Math.round(resultsCopy[i] - factor * resultsCopy[k]);
+            displayStep(matrixCopy, resultsCopy, stepsDiv, `R${i + 1} -> R${i + 1} - (${factor})R${k + 1}`, Math.round(matrixCopy[k][k]));
+            pivots.push(matrixCopy[k][k]); // Simpan nilai pivot yang digunakan
         }
     }
 
-    const solution = backSubstitution(matrix, results);
-    displaySolution(solution, 'gauss');
+    return { matrixAfterGauss: matrixCopy, resultsAfterGauss: resultsCopy, pivots: pivots };
 }
 
 function gaussJordanElimination(matrix, results) {
@@ -91,29 +97,25 @@ function gaussJordanElimination(matrix, results) {
     stepsDiv.innerHTML = '';
 
     const order = matrix.length;
-    for (let k = 0; k < order; k++) {
-        let pivot = matrix[k][k];
+    for (let k = order - 1; k >= 0; k--) {
+        const pivot = Math.round(matrix[k][k]);
         for (let j = k; j < order; j++) {
-            matrix[k][j] /= pivot;
+            matrix[k][j] = Math.round(matrix[k][j] / pivot);
         }
-        results[k] /= pivot;
-        pivot = Math.round(pivot * 100) / 100; // Membulatkan pivot ke 2 desimal
-        displayStep(matrix, results, stepsDiv, `R${k + 1} -> R${k + 1} / (${pivot})`, pivot, true);
+        results[k] = Math.round(results[k] / pivot);
+        displayStep(matrix, results, stepsDiv, `R${k + 1} -> R${k + 1} / (${pivot})`, pivot);
 
-        for (let i = 0; i < order; i++) {
-            if (i !== k) {
-                let factor = matrix[i][k];
-                factor = Math.round(factor * 100) / 100; // Membulatkan faktor ke 2 desimal
-                for (let j = k; j < order; j++) {
-                    matrix[i][j] -= factor * matrix[k][j];
-                }
-                results[i] -= factor * results[k];
-                displayStep(matrix, results, stepsDiv, `R${i + 1} -> R${i + 1} - (${factor})R${k + 1}`, pivot, true);
+        for (let i = 0; i < k; i++) {
+            const factor = Math.round(matrix[i][k]);
+            for (let j = k; j < order; j++) {
+                matrix[i][j] = Math.round(matrix[i][j] - factor * matrix[k][j]);
             }
+            results[i] = Math.round(results[i] - factor * results[k]);
+            displayStep(matrix, results, stepsDiv, `R${i + 1} -> R${i + 1} - (${factor})R${k + 1}`, pivot);
         }
     }
 
-    const solution = results.map(x => Math.round(x * 100) / 100); // Membulatkan solusi akhir ke 2 desimal
+    const solution = results;
     displaySolution(solution, 'gauss-jordan');
 }
 
@@ -126,7 +128,7 @@ function backSubstitution(matrix, results) {
         for (let j = i + 1; j < order; j++) {
             sum -= matrix[i][j] * solution[j];
         }
-        solution[i] = Math.round((sum / matrix[i][i]) * 100) / 100; // Membulatkan ke 2 desimal
+        solution[i] = Math.round(sum / matrix[i][i]);
     }
 
     return solution;
@@ -138,13 +140,13 @@ function displaySolution(solution, method) {
     }
 }
 
-function displayStep(matrix, results, stepsDiv, operation, pivot, isGaussJordan) {
+function displayStep(matrix, results, stepsDiv, operation, pivot) {
     const stepDiv = document.createElement('div');
     stepDiv.classList.add('step');
 
     const operationP = document.createElement('p');
     operationP.classList.add('operation');
-    operationP.innerText = `${operation} (Pivot: ${pivot})`;
+    operationP.innerText = operation + `, pivot = ${pivot}`;
     stepDiv.appendChild(operationP);
 
     const table = document.createElement('table');
@@ -152,15 +154,11 @@ function displayStep(matrix, results, stepsDiv, operation, pivot, isGaussJordan)
         const row = document.createElement('tr');
         for (let j = 0; j < matrix[i].length; j++) {
             const cell = document.createElement('td');
-            if (isGaussJordan && j < i) {
-                cell.innerText = 0; // Mengatur elemen bawah diagonal utama menjadi 0
-            } else {
-                cell.innerText = Math.round(matrix[i][j] * 100) / 100; // Membulatkan ke 2 desimal
-            }
+            cell.innerText = Math.round(matrix[i][j]);
             row.appendChild(cell);
         }
         const resultCell = document.createElement('td');
-        resultCell.innerText = Math.round(results[i] * 100) / 100; // Membulatkan ke 2 desimal
+        resultCell.innerText = Math.round(results[i]);
         row.appendChild(resultCell);
         table.appendChild(row);
     }
@@ -168,3 +166,4 @@ function displayStep(matrix, results, stepsDiv, operation, pivot, isGaussJordan)
     stepDiv.appendChild(table);
     stepsDiv.appendChild(stepDiv);
 }
+
